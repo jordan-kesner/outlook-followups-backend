@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Function File</title>
+
+  <!-- Office.js is required -->
+  <script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
+
+  <script>
+    // Outlook requires this file to load successfully,
+    // even if you don’t use ExecuteFunction commands.
+    Office.onReady(() => {
+      console.log("Function file loaded");
+    });
+  </script>
+</head>
+<body>
+  <!-- This page doesn’t need UI; Outlook just needs it to resolve -->
+</body>
+</html>
