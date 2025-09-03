@@ -15,7 +15,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "https://godot-outlook-app.netlify.app",
-        "https://localhost:3000",  # optional for local dev
+        "https://localhost:3000",  # for local dev
     ],
     allow_methods=["*"],
     allow_headers=["*"],
