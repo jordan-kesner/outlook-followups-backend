@@ -161,8 +161,8 @@ def unreplied(days: int = 30, authorization: str = Header(...)) -> List[Dict]:
 
     results: List[Dict] = []
     
-    # Process in batches for better performance
-    batch_size = 20
+    # Process in smaller batches to avoid API complexity
+    batch_size = 10  # Reduced batch size
     for i in range(0, len(filtered_sent_items), batch_size):
         batch = filtered_sent_items[i:i + batch_size]
         
@@ -172,13 +172,12 @@ def unreplied(days: int = 30, authorization: str = Header(...)) -> List[Dict]:
             if not cid or not sent_time:
                 continue
 
-            # 2) Check for replies in conversation, excluding auto-replies
+            # 2) Check for replies in conversation - simplified query
             inbox_url = f"{GRAPH}/me/mailFolders/Inbox/messages"
             inbox_params = {
                 "$filter": f"conversationId eq '{cid}'",
                 "$select": "id,from,receivedDateTime,subject",
-                "$orderby": "receivedDateTime desc",
-                "$top": 20,  # Limit to recent messages in conversation
+                "$top": 10,  # Reduced to avoid complex queries
             }
             
             try:
@@ -217,8 +216,21 @@ def unreplied(days: int = 30, authorization: str = Header(...)) -> List[Dict]:
                     print(f"Email has reply, skipping: {m.get('subject', 'No subject')}")
                     
             except Exception as e:
-                # Log error but continue processing other emails
-                print(f"Error processing conversation {cid}: {e}")
+                # Check if it's the inefficient filter error
+                if "InefficientFilter" in str(e):
+                    print(f"Skipping conversation {cid} due to complex filter - adding email to results")
+                    # If we can't check for replies due to filter complexity, assume no reply
+                    to_list = m.get("toRecipients") or []
+                    to_first = (to_list[0].get("emailAddress", {}).get("address") if to_list else "") or ""
+                    email_result = {
+                        "subject": m.get("subject") or "(no subject)",
+                        "to": to_first,
+                        "sent": sent_time
+                    }
+                    print(f"Adding email (filter failed): {email_result['subject']} to {email_result['to']}")
+                    results.append(email_result)
+                else:
+                    print(f"Error processing conversation {cid}: {e}")
                 continue
 
     results.sort(key=lambda x: x["sent"] or "", reverse=True)
