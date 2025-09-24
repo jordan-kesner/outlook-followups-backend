@@ -3,3 +3,4 @@ uvicorn
 msal
 requests
 python-dotenv
+aiohttp

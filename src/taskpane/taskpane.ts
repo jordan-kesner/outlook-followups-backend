@@ -57,9 +57,16 @@ Office.onReady(() => {
     for (const item of rows) {
       const tr = document.createElement("tr");
       tr.innerHTML = `
-        <td title="${escapeHtml(item.subject)}">${escapeHtml(item.subject)}</td>
-        <td title="${escapeHtml(item.to)}">${escapeHtml(item.to)}</td>
-        <td>${new Date(item.sent).toLocaleString()}</td>`;
+        <td colspan="3" class="stacked-cell">
+          <div class="stacked-row">
+            <div class="stacked-label">Subject:</div>
+            <div class="stacked-value subject">${escapeHtml(item.subject)}</div>
+            <div class="stacked-label">To:</div>
+            <div class="stacked-value to">${escapeHtml(item.to)}</div>
+            <div class="stacked-label">Sent:</div>
+            <div class="stacked-value sent">${new Date(item.sent).toLocaleString()}</div>
+          </div>
+        </td>`;
       tbody.appendChild(tr);
     }
   }
