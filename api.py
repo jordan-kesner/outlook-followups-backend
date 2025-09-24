@@ -82,19 +82,27 @@ def is_calendar_invite_or_automated(message: Dict) -> bool:
         "calendly", "meeting request", "meeting update", "meeting canceled"
     ]
     
-    # Automated email addresses
+    # Automated email addresses - be more specific to avoid false positives
     automated_senders = [
         "calendar-noreply@calendly.com", "no-reply@zoom.us", "noreply@microsoft.com",
         "calendar@outlook.com", "noreply@calendly.com", "no-reply@calendly.com",
-        "noreply@teams.microsoft.com", "calendar-server@", "noreply@"
+        "noreply@teams.microsoft.com"
     ]
     
     # Check subject patterns
     if any(pattern in subject for pattern in calendar_subjects):
+        print(f"Filtered calendar subject: {subject}")
         return True
     
-    # Check sender patterns
-    if any(sender in from_address for sender in automated_senders):
+    # Check sender patterns - be more specific
+    for sender in automated_senders:
+        if sender == from_address:  # Exact match instead of 'in'
+            print(f"Filtered automated sender: {from_address}")
+            return True
+    
+    # Only filter if sender starts with these specific patterns
+    if from_address.startswith("calendar-server@") or from_address.startswith("noreply@"):
+        print(f"Filtered noreply sender: {from_address}")
         return True
     
     return False
@@ -141,10 +149,15 @@ def unreplied(days: int = 30, authorization: str = Header(...)) -> List[Dict]:
     sent_items = list_all_pages(sent_url, user_token, sent_params)
 
     # Filter out calendar invites and automated emails
-    filtered_sent_items = [
-        item for item in sent_items 
-        if not is_calendar_invite_or_automated(item)
-    ]
+    print(f"Total sent items before filtering: {len(sent_items)}")
+    filtered_sent_items = []
+    for item in sent_items:
+        if not is_calendar_invite_or_automated(item):
+            filtered_sent_items.append(item)
+        else:
+            print(f"Filtered out: {item.get('subject', 'No subject')} from {item.get('from', {}).get('emailAddress', {}).get('address', 'Unknown sender')}")
+    
+    print(f"Sent items after filtering: {len(filtered_sent_items)}")
 
     results: List[Dict] = []
     
@@ -193,11 +206,15 @@ def unreplied(days: int = 30, authorization: str = Header(...)) -> List[Dict]:
                 if not has_real_reply:
                     to_list = m.get("toRecipients") or []
                     to_first = (to_list[0].get("emailAddress", {}).get("address") if to_list else "") or ""
-                    results.append({
+                    email_result = {
                         "subject": m.get("subject") or "(no subject)",
                         "to": to_first,
                         "sent": sent_time
-                    })
+                    }
+                    print(f"Adding unreplied email: {email_result['subject']} to {email_result['to']}")
+                    results.append(email_result)
+                else:
+                    print(f"Email has reply, skipping: {m.get('subject', 'No subject')}")
                     
             except Exception as e:
                 # Log error but continue processing other emails
